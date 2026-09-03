@@ -1,0 +1,60 @@
+name: Deploy website
+
+on:
+  push:
+    branches: [develop, production]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: westernprise-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ github.ref_name == 'production' && 'production' || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build cPanel package
+        run: npm run build
+
+      - name: Deploy staging
+        if: github.ref_name == 'develop'
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./dist/client/
+          server-dir: ${{ format('{0}/', secrets.STAGING_SERVER_DIR) }}
+          state-name: .westernprise-staging-sync-state.json
+          timeout: 120000
+
+      - name: Deploy production
+        if: github.ref_name == 'production'
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./dist/client/
+          server-dir: ${{ format('{0}/', secrets.PRODUCTION_SERVER_DIR) }}
+          state-name: .westernprise-production-sync-state.json
+          timeout: 120000

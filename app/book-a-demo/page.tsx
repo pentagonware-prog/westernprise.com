@@ -31,7 +31,7 @@ export default function BookDemoPage() {
     const form = event.currentTarget;
     const data = Object.fromEntries(new FormData(form).entries());
     try {
-      const response = await fetch("/api/demo-requests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      const response = await fetch("/api/demo-requests/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error || "Please try again.");
       setStatus("success");
