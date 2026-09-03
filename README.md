@@ -5,8 +5,8 @@ The public Westernprise product website and demo-request experience.
 ## Environment flow
 
 1. **Local** — work on a feature branch and run `npm run dev`.
-2. **Staging** — open a pull request into `staging`. CI installs the locked dependencies, builds the deployable artifact, and runs the rendered-page test.
-3. **Live** — after approval on staging, open a pull request from `staging` into `main`. `main` is the production source of truth.
+2. **Staging** — push or merge into `develop`. CI validates the site, then the deployment workflow publishes it to `staging.westernprise.com`.
+3. **Live** — merge the approved `develop` state into `production`. CI validates the same source before the deployment workflow publishes it to `westernprise.com`.
 
 Do not commit `.env` files. Configure hosted values in the hosting environment and keep local-only values in an ignored `.env.local` file.
 

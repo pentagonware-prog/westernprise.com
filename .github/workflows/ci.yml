@@ -2,9 +2,9 @@ name: Validate website
 
 on:
   pull_request:
-    branches: [staging, main]
+    branches: [develop, production]
   push:
-    branches: [staging, main]
+    branches: [develop, production]
 
 permissions:
   contents: read
