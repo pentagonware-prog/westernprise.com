@@ -22,6 +22,37 @@ if (trim((string) ($payload['website'] ?? '')) !== '') {
     exit;
 }
 
+require_once dirname(__DIR__) . '/mail.php';
+try {
+    $config = westernprise_mail_config();
+    $captchaToken = trim((string) ($payload['recaptchaToken'] ?? ''));
+    $captchaSecret = trim((string) ($config['RECAPTCHA_SECRET_KEY'] ?? ''));
+    $captchaHost = trim((string) ($config['RECAPTCHA_HOSTNAME'] ?? ''));
+    if ($captchaToken === '' || $captchaSecret === '' || !function_exists('curl_init')) {
+        throw new RuntimeException('Missing verification configuration or response.');
+    }
+    $captchaRequest = curl_init('https://www.google.com/recaptcha/api/siteverify');
+    curl_setopt_array($captchaRequest, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query(['secret' => $captchaSecret, 'response' => $captchaToken, 'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '']),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 12,
+    ]);
+    $captchaResponse = curl_exec($captchaRequest);
+    $captchaStatus = (int) curl_getinfo($captchaRequest, CURLINFO_RESPONSE_CODE);
+    curl_close($captchaRequest);
+    $captchaResult = is_string($captchaResponse) ? json_decode($captchaResponse, true) : null;
+    if ($captchaStatus !== 200 || !is_array($captchaResult) || ($captchaResult['success'] ?? false) !== true
+        || ($captchaHost !== '' && !hash_equals($captchaHost, (string) ($captchaResult['hostname'] ?? '')))) {
+        throw new RuntimeException('Verification rejected.');
+    }
+} catch (Throwable $error) {
+    error_log('Westernprise reCAPTCHA verification failed.');
+    http_response_code(422);
+    echo json_encode(['error' => 'Verification failed. Please try again.']);
+    exit;
+}
+
 function clean_field(array $payload, string $key, int $limit = 240): string
 {
     $value = trim((string) ($payload[$key] ?? ''));
@@ -79,10 +110,8 @@ $htmlBody = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewpo
     . '<tr><td style="padding:20px 32px;background:#172e27;color:#a9bcb5;font-size:11px;line-height:1.6"><strong style="color:#d2a446">Westernprise</strong><br>Connected business operations · <a href="https://westernprise.com" style="color:#ffffff;text-decoration:none">westernprise.com</a></td></tr>'
     . '</table></td></tr></table></body></html>';
 
-require_once dirname(__DIR__) . '/mail.php';
 require_once dirname(__DIR__) . '/database.php';
 try {
-    $config = westernprise_mail_config();
     $pdo = westernprise_database($config);
     $insert = $pdo->prepare('INSERT INTO demo_requests (first_name, last_name, work_email, phone, company, role, company_size, referral_source, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $insert->execute(array_values($fields));

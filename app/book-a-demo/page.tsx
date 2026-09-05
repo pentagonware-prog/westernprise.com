@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { LanguageSelector } from "@/components/ui/language-selector";
 import { Footer } from "@/components/ui/footer";
 
@@ -16,7 +16,39 @@ export default function BookDemoPage() {
   const [message, setMessage] = useState("");
   const [step, setStep] = useState(0);
   const [menu, setMenu] = useState(false);
+  const [captchaSiteKey, setCaptchaSiteKey] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const captchaRef = useRef<HTMLDivElement>(null);
+  const captchaWidget = useRef<number | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    fetch("/api/captcha-config/").then((response) => { if (!response.ok) throw new Error(); return response.json(); }).then((data: { siteKey?: string }) => {
+      if (data.siteKey) setCaptchaSiteKey(data.siteKey);
+    }).catch(() => setMessage("Verification could not be loaded. Please refresh the page."));
+  }, []);
+
+  useEffect(() => {
+    if (step !== 3 || !captchaSiteKey || !captchaRef.current || captchaWidget.current !== null) return;
+    const render = () => {
+      if (!captchaRef.current || captchaWidget.current !== null || !window.grecaptcha) return;
+      captchaWidget.current = window.grecaptcha.render(captchaRef.current, {
+        sitekey: captchaSiteKey,
+        callback: (token: string) => setCaptchaToken(token),
+        "expired-callback": () => setCaptchaToken(""),
+        "error-callback": () => setCaptchaToken(""),
+      });
+    };
+    if (window.grecaptcha) render();
+    else {
+      const script = document.createElement("script");
+      script.src = "https://www.google.com/recaptcha/api.js?render=explicit";
+      script.async = true;
+      script.defer = true;
+      script.onload = render;
+      document.head.appendChild(script);
+    }
+  }, [step, captchaSiteKey]);
 
   const moveForward = () => {
     const panel = formRef.current?.querySelector<HTMLElement>(`[data-step="${step}"]`);
@@ -31,6 +63,12 @@ export default function BookDemoPage() {
     setMessage("");
     const form = event.currentTarget;
     const data = Object.fromEntries(new FormData(form).entries());
+    if (!captchaToken) {
+      setStatus("error");
+      setMessage("Please complete the verification checkbox.");
+      return;
+    }
+    data.recaptchaToken = captchaToken;
     try {
       const response = await fetch("/api/demo-requests/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
       const result = await response.json() as { error?: string };
@@ -40,6 +78,8 @@ export default function BookDemoPage() {
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Please try again.");
+      if (captchaWidget.current !== null) window.grecaptcha?.reset(captchaWidget.current);
+      setCaptchaToken("");
     }
   };
 
@@ -103,6 +143,7 @@ export default function BookDemoPage() {
               <div className="demo-step demo-step-grid" data-step="3" hidden={step !== 3}>
                 <label className="wide"><span>How did you hear about us?</span><select name="referralSource" defaultValue=""><option value="">Select an option</option><option>Search engine</option><option>Social media</option><option>Recommendation</option><option>Event or publication</option><option>Existing Westernprise customer</option><option>Other</option></select></label>
                 <label className="wide"><span>What would you like us to focus on?</span><textarea name="notes" rows={4} placeholder="Tell us which processes or areas you want to improve." /></label>
+                <div className="demo-captcha wide">{captchaSiteKey ? <div ref={captchaRef} /> : <p>Loading verification…</p>}</div>
               </div>
               <label className="demo-honeypot" aria-hidden="true"><span>Website</span><input name="website" tabIndex={-1} autoComplete="off" /></label>
               {status === "error" && <p className="demo-error" role="alert">{message}</p>}
