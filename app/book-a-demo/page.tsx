@@ -32,7 +32,7 @@ export default function BookDemoPage() {
   useEffect(() => {
     if (step !== 3 || !captchaSiteKey || !captchaRef.current || captchaWidget.current !== null) return;
     const render = () => {
-      if (!captchaRef.current || captchaWidget.current !== null || !window.grecaptcha?.render) return;
+      if (!captchaRef.current || captchaWidget.current !== null || !window.grecaptcha?.render) return false;
       try {
         captchaWidget.current = window.grecaptcha.render(captchaRef.current, {
           sitekey: captchaSiteKey,
@@ -41,25 +41,32 @@ export default function BookDemoPage() {
           "error-callback": () => setCaptchaToken(""),
         });
         setCaptchaLoadError(false);
+        return true;
       } catch {
         setCaptchaLoadError(true);
+        return true;
       }
     };
     const existingScript = document.querySelector<HTMLScriptElement>('script[data-westernprise-recaptcha]');
-    if (window.grecaptcha?.render) render();
-    else if (existingScript) {
-      existingScript.addEventListener("load", render, { once: true });
-      existingScript.addEventListener("error", () => setCaptchaLoadError(true), { once: true });
-    } else {
+    if (!existingScript) {
       const script = document.createElement("script");
       script.src = "https://www.google.com/recaptcha/api.js?render=explicit";
       script.async = true;
       script.defer = true;
       script.dataset.westernpriseRecaptcha = "true";
-      script.onload = render;
       script.onerror = () => setCaptchaLoadError(true);
       document.head.appendChild(script);
     }
+    if (render()) return;
+    let attempts = 0;
+    const poll = window.setInterval(() => {
+      attempts += 1;
+      if (render() || attempts >= 100) {
+        window.clearInterval(poll);
+        if (attempts >= 100 && captchaWidget.current === null) setCaptchaLoadError(true);
+      }
+    }, 100);
+    return () => window.clearInterval(poll);
   }, [step, captchaSiteKey]);
 
   const moveForward = () => {
