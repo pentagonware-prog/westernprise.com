@@ -2,9 +2,10 @@
 
 import { FormEvent, useRef, useState } from "react";
 import { LanguageSelector } from "@/components/ui/language-selector";
+import { Footer } from "@/components/ui/footer";
 
 type Status = "idle" | "sending" | "success" | "error";
-const steps = ["Email", "About you", "Business", "Schedule"];
+const steps = ["Email", "About you", "Business", "Details"];
 
 function TickIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.2 4.2L19 7" /></svg>;
@@ -42,8 +43,8 @@ export default function BookDemoPage() {
     }
   };
 
-  const heading = step === 0 ? "Start with your work email" : step === 1 ? "Tell us about you" : step === 2 ? "Tell us about your business" : "Choose a suitable time";
-  const helper = step === 0 ? "So the right person on our team can get back to you." : step === 1 ? "We’ll use these details to arrange your session." : step === 2 ? "This helps us tailor the walkthrough to your needs." : "Share your preference and we’ll confirm the appointment.";
+  const heading = step === 0 ? "Start with your work email" : step === 1 ? "Tell us about you" : step === 2 ? "Tell us about your business" : "One last thing";
+  const helper = step === 0 ? "So the right person on our team can get back to you." : step === 1 ? "We’ll use these details to arrange your session." : step === 2 ? "This helps us tailor the walkthrough to your needs." : "Tell us how you found Westernprise and what you would like to explore.";
 
   return <main className="demo-page">
     <section className="demo-split">
@@ -82,7 +83,7 @@ export default function BookDemoPage() {
 
         <div className="demo-form-shell">
           {status === "success" ? <div className="demo-success">
-            <i><TickIcon /></i><span>REQUEST RECEIVED</span><h2>We’ll be in touch shortly.</h2><p>Our team will review your preferred time and contact you to confirm your personalised Westernprise demo.</p><a href="/">Return to the website</a>
+            <i><TickIcon /></i><span>REQUEST RECEIVED</span><h2>We’ll be in touch shortly.</h2><p>Our team will review your request and contact you to arrange your personalised Westernprise demo.</p><a href="/">Return to the website</a>
           </div> : <>
             <div className="demo-form-heading"><span>BOOK A PERSONALISED DEMO</span><h2>{heading}</h2><p>{helper}</p></div>
             <form ref={formRef} onSubmit={submit}>
@@ -100,8 +101,7 @@ export default function BookDemoPage() {
                 <label><span>Company size</span><select name="companySize" required defaultValue=""><option value="" disabled>Select size</option><option>1–10 people</option><option>11–50 people</option><option>51–200 people</option><option>201+ people</option></select></label>
               </div>
               <div className="demo-step demo-step-grid" data-step="3" hidden={step !== 3}>
-                <label><span>Preferred date</span><input name="preferredDate" type="date" min={new Date().toISOString().slice(0,10)} required /></label>
-                <label><span>Preferred time</span><select name="preferredTime" required defaultValue=""><option value="" disabled>Select time</option><option>Morning · 9am–12pm</option><option>Afternoon · 12pm–4pm</option><option>Late afternoon · 4pm–6pm</option></select></label>
+                <label className="wide"><span>How did you hear about us?</span><select name="referralSource" defaultValue=""><option value="">Select an option</option><option>Search engine</option><option>Social media</option><option>Recommendation</option><option>Event or publication</option><option>Existing Westernprise customer</option><option>Other</option></select></label>
                 <label className="wide"><span>What would you like us to focus on?</span><textarea name="notes" rows={4} placeholder="Tell us which processes or areas you want to improve." /></label>
               </div>
               <label className="demo-honeypot" aria-hidden="true"><span>Website</span><input name="website" tabIndex={-1} autoComplete="off" /></label>
@@ -117,5 +117,6 @@ export default function BookDemoPage() {
         </div>
       </div>
     </section>
+    <Footer logo={<img className="westernprise-footer-logo" src="/westernprise-official-logo-white.png" alt="Westernprise" />} brandName="Westernprise" socialLinks={[]} mainLinks={[{href:"/#how",label:"How It Works"},{href:"/#features",label:"Features"},{href:"/#audience",label:"Who It’s For"},{href:"/#faq",label:"FAQ"},{href:"/book-a-demo",label:"Book a Demo"}]} legalLinks={[{href:"/#",label:"Privacy Policy"},{href:"/#",label:"Terms"},{href:"/#",label:"Cookies"}]} copyright={{text:"© 2026 Westernprise",license:"All rights reserved"}} />
   </main>;
 }

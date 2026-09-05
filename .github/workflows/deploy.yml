@@ -43,6 +43,11 @@ jobs:
           local-dir: ./dist/client/
           server-dir: ${{ format('{0}/', secrets.STAGING_SERVER_DIR) }}
           state-name: .westernprise-staging-sync-state.json
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/.env*
           timeout: 120000
 
       - name: Deploy production
@@ -57,4 +62,9 @@ jobs:
           local-dir: ./dist/client/
           server-dir: ${{ format('{0}/', secrets.PRODUCTION_SERVER_DIR) }}
           state-name: .westernprise-production-sync-state.json
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/.env*
           timeout: 120000
