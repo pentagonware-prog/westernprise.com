@@ -18,6 +18,7 @@ export default function BookDemoPage() {
   const [menu, setMenu] = useState(false);
   const [captchaSiteKey, setCaptchaSiteKey] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaLoadError, setCaptchaLoadError] = useState(false);
   const captchaRef = useRef<HTMLDivElement>(null);
   const captchaWidget = useRef<number | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -31,21 +32,35 @@ export default function BookDemoPage() {
   useEffect(() => {
     if (step !== 3 || !captchaSiteKey || !captchaRef.current || captchaWidget.current !== null) return;
     const render = () => {
-      if (!captchaRef.current || captchaWidget.current !== null || !window.grecaptcha) return;
-      captchaWidget.current = window.grecaptcha.render(captchaRef.current, {
-        sitekey: captchaSiteKey,
-        callback: (token: string) => setCaptchaToken(token),
-        "expired-callback": () => setCaptchaToken(""),
-        "error-callback": () => setCaptchaToken(""),
+      if (!captchaRef.current || captchaWidget.current !== null || !window.grecaptcha?.render) return;
+      window.grecaptcha.ready(() => {
+        if (!captchaRef.current || captchaWidget.current !== null || !window.grecaptcha?.render) return;
+        try {
+          captchaWidget.current = window.grecaptcha.render(captchaRef.current, {
+            sitekey: captchaSiteKey,
+            callback: (token: string) => setCaptchaToken(token),
+            "expired-callback": () => setCaptchaToken(""),
+            "error-callback": () => setCaptchaToken(""),
+          });
+          setCaptchaLoadError(false);
+        } catch {
+          setCaptchaLoadError(true);
+        }
       });
     };
-    if (window.grecaptcha) render();
-    else {
+    const existingScript = document.querySelector<HTMLScriptElement>('script[data-westernprise-recaptcha]');
+    if (window.grecaptcha?.render) render();
+    else if (existingScript) {
+      existingScript.addEventListener("load", render, { once: true });
+      existingScript.addEventListener("error", () => setCaptchaLoadError(true), { once: true });
+    } else {
       const script = document.createElement("script");
       script.src = "https://www.google.com/recaptcha/api.js?render=explicit";
       script.async = true;
       script.defer = true;
+      script.dataset.westernpriseRecaptcha = "true";
       script.onload = render;
+      script.onerror = () => setCaptchaLoadError(true);
       document.head.appendChild(script);
     }
   }, [step, captchaSiteKey]);
@@ -143,7 +158,7 @@ export default function BookDemoPage() {
               <div className="demo-step demo-step-grid" data-step="3" hidden={step !== 3}>
                 <label className="wide"><span>How did you hear about us?</span><select name="referralSource" defaultValue=""><option value="">Select an option</option><option>Search engine</option><option>Social media</option><option>Recommendation</option><option>Event or publication</option><option>Existing Westernprise customer</option><option>Other</option></select></label>
                 <label className="wide"><span>What would you like us to focus on?</span><textarea name="notes" rows={4} placeholder="Tell us which processes or areas you want to improve." /></label>
-                <div className="demo-captcha wide">{captchaSiteKey ? <div ref={captchaRef} /> : <p>Loading verification…</p>}</div>
+                <div className="demo-captcha wide">{captchaLoadError ? <p role="alert">Verification could not be displayed. Please refresh the page or disable content blocking for this site.</p> : captchaSiteKey ? <div ref={captchaRef} /> : <p>Loading verification…</p>}</div>
               </div>
               <label className="demo-honeypot" aria-hidden="true"><span>Website</span><input name="website" tabIndex={-1} autoComplete="off" /></label>
               {status === "error" && <p className="demo-error" role="alert">{message}</p>}
