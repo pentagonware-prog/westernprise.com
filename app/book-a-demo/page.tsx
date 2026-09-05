@@ -33,20 +33,17 @@ export default function BookDemoPage() {
     if (step !== 3 || !captchaSiteKey || !captchaRef.current || captchaWidget.current !== null) return;
     const render = () => {
       if (!captchaRef.current || captchaWidget.current !== null || !window.grecaptcha?.render) return;
-      window.grecaptcha.ready(() => {
-        if (!captchaRef.current || captchaWidget.current !== null || !window.grecaptcha?.render) return;
-        try {
-          captchaWidget.current = window.grecaptcha.render(captchaRef.current, {
-            sitekey: captchaSiteKey,
-            callback: (token: string) => setCaptchaToken(token),
-            "expired-callback": () => setCaptchaToken(""),
-            "error-callback": () => setCaptchaToken(""),
-          });
-          setCaptchaLoadError(false);
-        } catch {
-          setCaptchaLoadError(true);
-        }
-      });
+      try {
+        captchaWidget.current = window.grecaptcha.render(captchaRef.current, {
+          sitekey: captchaSiteKey,
+          callback: (token: string) => setCaptchaToken(token),
+          "expired-callback": () => setCaptchaToken(""),
+          "error-callback": () => setCaptchaToken(""),
+        });
+        setCaptchaLoadError(false);
+      } catch {
+        setCaptchaLoadError(true);
+      }
     };
     const existingScript = document.querySelector<HTMLScriptElement>('script[data-westernprise-recaptcha]');
     if (window.grecaptcha?.render) render();
