@@ -51,7 +51,7 @@ jobs:
           </IfModule>
 
           <IfModule mod_headers.c>
-            Header always set WWW-Authenticate "Basic realm=\"Westernprise Staging\"" "expr=%{REQUEST_STATUS} == 401"
+            Header always set WWW-Authenticate "Basic realm=Westernprise-Staging" "expr=%{REQUEST_STATUS} == 401"
             Header always set X-Robots-Tag "noindex, nofollow, noarchive"
           </IfModule>
           EOF
@@ -75,6 +75,16 @@ jobs:
             **/node_modules/**
             **/.env*
           timeout: 120000
+
+      - name: Verify staging access controls
+        if: github.ref_name == 'develop'
+        env:
+          STAGING_AUTH_USERNAME: ${{ secrets.STAGING_AUTH_USERNAME }}
+          STAGING_AUTH_PASSWORD: ${{ secrets.STAGING_AUTH_PASSWORD }}
+        run: |
+          PUBLIC_STATUS="$(curl --silent --output /dev/null --write-out '%{http_code}' https://staging.westernprise.com/)"
+          test "$PUBLIC_STATUS" = "401"
+          curl --fail --silent --show-error --user "$STAGING_AUTH_USERNAME:$STAGING_AUTH_PASSWORD" https://staging.westernprise.com/ > /dev/null
 
       - name: Deploy production
         if: github.ref_name == 'production'
