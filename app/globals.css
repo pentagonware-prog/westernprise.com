@@ -824,3 +824,4 @@ footer .brand-mark{display:grid}.pb-6{padding-bottom:34px!important}.pt-16{paddi
     .stats-grid>article:nth-child(4){animation-range:entry 21% cover 45%}
   }
 }
+.staging-badge{position:fixed;z-index:99999;top:12px;left:50%;transform:translateX(-50%);padding:6px 13px;border:1px solid rgba(255,255,255,.45);border-radius:999px;background:#b45309;color:#fff;font:800 11px/1 system-ui,sans-serif;letter-spacing:.16em;box-shadow:0 4px 16px rgba(0,0,0,.2);pointer-events:none}

@@ -31,6 +31,32 @@ jobs:
       - name: Build cPanel package
         run: npm run build
 
+      - name: Protect and label staging package
+        if: github.ref_name == 'develop'
+        env:
+          STAGING_AUTH_USERNAME: ${{ secrets.STAGING_AUTH_USERNAME }}
+          STAGING_AUTH_PASSWORD: ${{ secrets.STAGING_AUTH_PASSWORD }}
+        run: |
+          if [ -z "$STAGING_AUTH_USERNAME" ] || [ -z "$STAGING_AUTH_PASSWORD" ]; then
+            echo "Staging authentication secrets are required."
+            exit 1
+          fi
+          AUTH_TOKEN="$(printf '%s:%s' "$STAGING_AUTH_USERNAME" "$STAGING_AUTH_PASSWORD" | base64 -w 0)"
+          cat >> dist/client/.htaccess <<EOF
+
+          <IfModule mod_rewrite.c>
+            RewriteEngine On
+            RewriteCond %{HTTP:Authorization} !^Basic\ ${AUTH_TOKEN}$
+            RewriteRule ^ - [R=401,L]
+          </IfModule>
+
+          <IfModule mod_headers.c>
+            Header always set WWW-Authenticate "Basic realm=\"Westernprise Staging\"" "expr=%{REQUEST_STATUS} == 401"
+            Header always set X-Robots-Tag "noindex, nofollow, noarchive"
+          </IfModule>
+          EOF
+          printf 'User-agent: *\nDisallow: /\n' > dist/client/robots.txt
+
       - name: Deploy staging
         if: github.ref_name == 'develop'
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
