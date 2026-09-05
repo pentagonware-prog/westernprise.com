@@ -19,7 +19,7 @@ function westernprise_mail_config(): array
     return $config;
 }
 
-function westernprise_send_mail(string $subject, string $body, string $replyTo): bool
+function westernprise_send_mail(string $subject, string $plainBody, string $htmlBody, string $replyTo): bool
 {
     $config = westernprise_mail_config();
     $from = $config['MAIL_FROM_ADDRESS'] ?? '';
@@ -52,7 +52,8 @@ function westernprise_send_mail(string $subject, string $body, string $replyTo):
                 'to' => [['email' => $to]],
                 'replyTo' => ['email' => $replyTo],
                 'subject' => $subject,
-                'textContent' => $body,
+                'textContent' => $plainBody,
+                'htmlContent' => $htmlBody,
             ], JSON_THROW_ON_ERROR),
         ]);
         $response = curl_exec($request);
@@ -65,9 +66,11 @@ function westernprise_send_mail(string $subject, string $body, string $replyTo):
         error_log('Westernprise: Brevo unavailable; attempting PHP mail fallback.');
     }
 
-    return mail($to, $subject, $body, implode("\r\n", [
+    return mail($to, $subject, $htmlBody, implode("\r\n", [
         'From: ' . $name . ' <' . $from . '>',
         'Reply-To: ' . $replyTo,
-        'Content-Type: text/plain; charset=UTF-8',
+        'MIME-Version: 1.0',
+        'Content-Type: text/html; charset=UTF-8',
+        'X-Mailer: Westernprise',
     ]));
 }

@@ -59,6 +59,26 @@ foreach ($fields as $label => $value) {
     $body .= $label . ': ' . $value . "\n";
 }
 
+$escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$rows = '';
+foreach ($fields as $label => $value) {
+    $displayValue = $value !== '' ? nl2br($escape($value)) : '<span style="color:#87958f">Not provided</span>';
+    $rows .= '<tr><td class="label" style="width:32%;padding:12px 14px;border-bottom:1px solid #dce5e1;color:#65746e;font-size:12px;font-weight:700;vertical-align:top">'
+        . $escape($label)
+        . '</td><td class="value" style="padding:12px 14px;border-bottom:1px solid #dce5e1;color:#172e27;font-size:14px;line-height:1.55;vertical-align:top">'
+        . $displayValue . '</td></tr>';
+}
+$htmlBody = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">'
+    . '<style>:root{color-scheme:light dark;supported-color-schemes:light dark}@media(prefers-color-scheme:dark){.page{background:#0d1d18!important}.card{background:#172e27!important;border-color:#35564b!important}.intro,.value{color:#edf5f1!important}.label,.muted{color:#a9bcb5!important}.details{border-color:#35564b!important}.label,.value{border-color:#35564b!important}}</style></head>'
+    . '<body class="page" style="margin:0;padding:0;background:#eef2ef;font-family:Arial,Helvetica,sans-serif;color:#172e27">'
+    . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:36px 16px">'
+    . '<table role="presentation" class="card" width="100%" cellpadding="0" cellspacing="0" style="max-width:660px;background:#ffffff;border:1px solid #d7e1dc;border-radius:18px;overflow:hidden">'
+    . '<tr><td style="padding:28px 32px;background:#172e27"><table role="presentation" width="100%"><tr><td><img src="https://westernprise.com/westernprise-official-logo-white.png" width="190" alt="Westernprise" style="display:block;max-width:190px;height:auto"></td><td align="right" style="color:#d2a446;font-size:11px;font-weight:800;letter-spacing:1.5px">DEMO REQUEST</td></tr></table></td></tr>'
+    . '<tr><td style="padding:34px 32px 16px"><div class="intro" style="color:#172e27;font-size:25px;font-weight:800;line-height:1.25">A new business wants to see Westernprise.</div><p class="muted" style="margin:10px 0 0;color:#65746e;font-size:14px;line-height:1.6">Reply directly to this email to contact ' . $escape($fields['First name']) . '.</p></td></tr>'
+    . '<tr><td style="padding:10px 32px 30px"><table role="presentation" class="details" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #dce5e1;border-radius:12px;overflow:hidden;border-collapse:separate;border-spacing:0">' . $rows . '</table></td></tr>'
+    . '<tr><td style="padding:20px 32px;background:#172e27;color:#a9bcb5;font-size:11px;line-height:1.6"><strong style="color:#d2a446">Westernprise</strong><br>Connected business operations · <a href="https://westernprise.com" style="color:#ffffff;text-decoration:none">westernprise.com</a></td></tr>'
+    . '</table></td></tr></table></body></html>';
+
 require_once dirname(__DIR__) . '/mail.php';
 require_once dirname(__DIR__) . '/database.php';
 try {
@@ -67,7 +87,7 @@ try {
     $insert = $pdo->prepare('INSERT INTO demo_requests (first_name, last_name, work_email, phone, company, role, company_size, referral_source, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $insert->execute(array_values($fields));
     $requestId = (int) $pdo->lastInsertId();
-    $sent = westernprise_send_mail('New Westernprise demo request', $body, $fields['Work email']);
+    $sent = westernprise_send_mail('New Westernprise demo request — ' . $fields['Company'], $body, $htmlBody, $fields['Work email']);
     $update = $pdo->prepare('UPDATE demo_requests SET notification_status = ? WHERE id = ?');
     $update->execute([$sent ? 'sent' : 'failed', $requestId]);
 } catch (Throwable $error) {
