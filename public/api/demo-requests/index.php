@@ -110,6 +110,15 @@ $htmlBody = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewpo
     . '<tr><td style="padding:20px 32px;background:#172e27;color:#a9bcb5;font-size:11px;line-height:1.6"><strong style="color:#d2a446">Westernprise</strong><br>Connected business operations · <a href="https://westernprise.com" style="color:#ffffff;text-decoration:none">westernprise.com</a></td></tr>'
     . '</table></td></tr></table></body></html>';
 
+$acknowledgementBody = "Hello {$fields['First name']},\n\nThank you for requesting a Westernprise demo. Our team has received your details and will contact you shortly to arrange a personalised walkthrough.\n\nWesternprise\nhttps://westernprise.com";
+$acknowledgementHtml = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">'
+    . '<style>:root{color-scheme:light dark;supported-color-schemes:light dark}@media(prefers-color-scheme:dark){.page{background:#0d1d18!important}.card{background:#172e27!important;border-color:#35564b!important}.copy{color:#edf5f1!important}.muted{color:#a9bcb5!important}}</style></head>'
+    . '<body class="page" style="margin:0;padding:0;background:#eef2ef;font-family:Arial,Helvetica,sans-serif;color:#172e27"><table role="presentation" width="100%"><tr><td align="center" style="padding:36px 16px"><table role="presentation" class="card" width="100%" style="max-width:620px;background:#fff;border:1px solid #d7e1dc;border-radius:18px;overflow:hidden;border-spacing:0">'
+    . '<tr><td style="padding:28px 32px;background:#172e27"><img src="https://westernprise.com/westernprise-official-logo-white.png" width="190" alt="Westernprise" style="display:block;max-width:190px;height:auto"></td></tr>'
+    . '<tr><td class="copy" style="padding:38px 32px;color:#172e27"><div style="font-size:26px;font-weight:800;line-height:1.25">Thank you, ' . $escape($fields['First name']) . '.</div><p style="margin:14px 0 0;font-size:15px;line-height:1.7">We have received your demo request. A member of our team will contact you shortly to arrange a personalised Westernprise walkthrough.</p><p class="muted" style="margin:24px 0 0;color:#65746e;font-size:13px;line-height:1.6">You can reply directly to this email if you would like to add anything.</p></td></tr>'
+    . '<tr><td style="padding:20px 32px;background:#172e27;color:#a9bcb5;font-size:11px"><strong style="color:#d2a446">Westernprise</strong><br>Connected business operations · <a href="https://westernprise.com" style="color:#fff;text-decoration:none">westernprise.com</a></td></tr>'
+    . '</table></td></tr></table></body></html>';
+
 require_once dirname(__DIR__) . '/database.php';
 try {
     $pdo = westernprise_database($config);
@@ -117,8 +126,11 @@ try {
     $insert->execute(array_values($fields));
     $requestId = (int) $pdo->lastInsertId();
     $sent = westernprise_send_mail('New Westernprise demo request — ' . $fields['Company'], $body, $htmlBody, $fields['Work email']);
+    $acknowledged = westernprise_send_mail('We received your Westernprise demo request', $acknowledgementBody, $acknowledgementHtml, (string) $config['MAIL_TO_ADDRESS'], $fields['Work email']);
     $update = $pdo->prepare('UPDATE demo_requests SET notification_status = ? WHERE id = ?');
     $update->execute([$sent ? 'sent' : 'failed', $requestId]);
+    $ackUpdate = $pdo->prepare('UPDATE demo_requests SET acknowledgement_status = ? WHERE id = ?');
+    $ackUpdate->execute([$acknowledged ? 'sent' : 'failed', $requestId]);
 } catch (Throwable $error) {
     error_log('Westernprise demo request failed [' . bin2hex(random_bytes(4)) . ']: ' . $error->getMessage());
     http_response_code(500);
@@ -127,4 +139,4 @@ try {
 }
 
 http_response_code(201);
-echo json_encode(['ok' => true, 'notificationSent' => $sent]);
+echo json_encode(['ok' => true, 'notificationSent' => $sent, 'acknowledgementSent' => $acknowledged]);

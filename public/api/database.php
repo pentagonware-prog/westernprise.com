@@ -30,5 +30,9 @@ function westernprise_database(array $config): PDO
         INDEX demo_requests_created_at_index (created_at),
         INDEX demo_requests_email_index (work_email)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    $column = $pdo->query("SHOW COLUMNS FROM demo_requests LIKE 'acknowledgement_status'")->fetch();
+    if (!$column) {
+        $pdo->exec("ALTER TABLE demo_requests ADD acknowledgement_status VARCHAR(20) NOT NULL DEFAULT 'pending' AFTER notification_status");
+    }
     return $pdo;
 }

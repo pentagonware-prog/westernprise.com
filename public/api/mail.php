@@ -19,11 +19,11 @@ function westernprise_mail_config(): array
     return $config;
 }
 
-function westernprise_send_mail(string $subject, string $plainBody, string $htmlBody, string $replyTo): bool
+function westernprise_send_mail(string $subject, string $plainBody, string $htmlBody, string $replyTo, ?string $recipient = null): bool
 {
     $config = westernprise_mail_config();
     $from = $config['MAIL_FROM_ADDRESS'] ?? '';
-    $to = $config['MAIL_TO_ADDRESS'] ?? '';
+    $to = $recipient ?? ($config['MAIL_TO_ADDRESS'] ?? '');
     $name = $config['MAIL_FROM_NAME'] ?? 'Westernprise';
     foreach ([$from, $to, $replyTo] as $address) {
         if (preg_match('/[\r\n]/', $address) || !filter_var($address, FILTER_VALIDATE_EMAIL)) {
